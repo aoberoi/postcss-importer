@@ -1,0 +1,39 @@
+{
+  "name": "postcss-importer",
+  "version": "0.1.0",
+  "description": "PostCSS plugin to inline files referenced with @import",
+  "keywords": [
+    "postcss",
+    "css",
+    "postcss-plugin",
+    "import"
+  ],
+  "main": "build/index.js",
+  "files": [
+    "build/**/*"
+  ],
+  "scripts": {
+    "lint": "tslint --project .",
+    "build": "tsc",
+    "build:clean": "shx rm -rf build",
+    "test": "npm run lint && exit 0 # TODO"
+  },
+  "author": "Ankur Oberoi <aoberoi@gmail.com>",
+  "license": "MIT",
+  "repository": "aoberoi/postcss-importer",
+  "bugs": {
+    "url": "https://github.com/aoberoi/postcss-importer/issues"
+  },
+  "homepage": "https://github.com/aoberoi/postcss-importer",
+  "dependencies": {
+    "@types/node": "^6.14.2",
+    "postcss": "^7.0.6"
+  },
+  "devDependencies": {
+    "shx": "^0.3.2",
+    "tslint": "^5.12.0",
+    "tslint-config-airbnb": "^5.11.1",
+    "tsutils": "^3.5.2",
+    "typescript": "^3.2.2"
+  }
+}

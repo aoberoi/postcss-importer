@@ -1,4 +1,5 @@
 import postcss, { Result, AtRule, Container, TransformCallback } from 'postcss';
+import ValueParser from 'postcss-value-parser'; // tslint:disable-line:import-name
 import NodeResolver from './NodeResolver';
 import ResolverChain from './ResolverChain';
 import RecursiveProcessor from './RecursiveProcessor';
@@ -37,8 +38,8 @@ function createRuleExtractor(recursiveProcessor: RecursiveProcessor): TransformC
   return async (container: Container, _result?: Result): Promise<Container> => {
     const importRules = findImportRules(container);
     return Promise.all(importRules.map((rule) => {
-      // TODO: turn rule into importParams
-      return recursiveProcessor.process({ location: '' });
+      const params = extractImportParams(rule);
+      return recursiveProcessor.process(params);
     })).then((containers) => {
       // Merge the containers, which each represent the contents of the imported style sheet, in place of the import
       // rule.
@@ -75,16 +76,54 @@ export default postcss.plugin<ImporterOptions>('postcss-importer', ({ resolvers 
 // ----- Helpers -----
 
 /**
- * Find `@import` rules in the given container.
+ * Find `@import` rules in the given container. This function is private. It is only exported for testing purposes.
  *
  * The walk methods on container are synchronous, meaning the callback can be called many times, but all before the
  * method returns. This function builds a collection and returns it so that it can be iterated on in any way we need to
  * (either synchronously or asynchronously).
  *
+ * See: https://developer.mozilla.org/en-US/docs/Web/CSS/@import
+ *
  * @param container a container to walk, often times a Root
  */
-function findImportRules(container: Container): AtRule[] {
+export function findImportRules(container: Container): AtRule[] {
   const importRules: AtRule[] = [];
   container.walkAtRules('import', r => importRules.push(r));
-  return importRules;
+
+  // According to the CSS spec, the `@import` syntax doesn't allow for a block of declarations following these rules.
+  // However, the parser wouldn't catch that issue and we may have some of them in `importRules`. In general, this
+  // plugin doesn't try to enforce the spec, but in this case it would produce a nonesense output if we ignored this.
+  // So, we filter this condition out below.
+  // TODO: warn when there's a nodes property. in order to do this i need the result instance.
+  return importRules.filter(r => !r.nodes);
+}
+
+/**
+ * Extracts an `ImportParams` object from an `AtRule` representing an `@import` rule.
+ *
+ * This function throws when the `@import` rule seems malformed or otherwise not extractable by the implementation.
+ * The implementation allows for bare identifiers (e.g. `@import 'foo';`) or URLs (e.g. `@import url('foo')`).
+ *
+ * @param rule the `@import` rule to extract parameters from
+ */
+export function extractImportParams(rule: AtRule): ImportParams {
+  const { nodes: parsed } = new ValueParser(rule.params);
+  if (parsed.length < 1) {
+    // TODO: should this instead be a warning? where does this error get caught?
+    throw new Error('Cannot parse @import without params');
+  }
+  const firstNode = parsed[0];
+
+  // TODO: where can we get the from value?
+  if (firstNode.type === 'string') {
+    return {
+      location: firstNode.value,
+    };
+  }
+  if (firstNode.type === 'function') {
+    return {
+      location: firstNode.nodes[0].value,
+    };
+  }
+  throw new Error('Cannot parse import rule with invalid value');
 }

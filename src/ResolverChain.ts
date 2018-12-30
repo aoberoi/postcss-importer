@@ -1,0 +1,44 @@
+import { Resolver, ImportParams } from './index';
+
+export default class ResolverChain implements Resolver {
+  private resolvers: Resolver[];
+
+  constructor(resolvers: Resolver[]) {
+    this.resolvers = resolvers;
+  }
+
+  /**
+   * Delegates to resolvers. If any of them wants to resolve these import parameters, returns true.
+   *
+   * @param importParams parameters from the `@import` rule
+   * @param from location that's requesting the parameters to be resolved
+   */
+  public willResolve(importParams: ImportParams): boolean {
+    let canResolve = false;
+    for (const resolver of this.resolvers) {
+      if (resolver.willResolve) {
+        canResolve = resolver.willResolve(importParams);
+      }
+      if (canResolve) {
+        return true;
+      }
+    }
+    return canResolve;
+  }
+
+  /**
+   * Delegates to resolvers. Returns the content from the first resolver that succeeds, otherwise keeps attempting the
+   * next in the chain.
+   *
+   * @param importParams parameters from the `@import` rule
+   * @param from location that's requesting the parameters to be resolved
+   */
+  public async resolve(importParams: ImportParams): Promise<string> {
+    for (const resolver of this.resolvers) {
+      try {
+        return await resolver.resolve(importParams);
+      } finally { } // tslint:disable-line:no-empty Ignore individual resolver errors
+    }
+    throw new Error('Resolution failed.');
+  }
+}

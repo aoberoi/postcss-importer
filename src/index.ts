@@ -23,7 +23,6 @@ export interface ImportParams {
 }
 
 export interface Resolver {
-  // TODO: maybe the from is optional
   willResolve?: (importParams: ImportParams) => boolean;
   // TODO: do i need to return a file path?
   resolve: (importParams: ImportParams) => Promise<string>;
@@ -40,11 +39,11 @@ function createRuleExtractor(recursiveProcessor: RecursiveProcessor): TransformC
     return Promise.all(importRules.map((rule) => {
       const params = extractImportParams(rule);
       return recursiveProcessor.process(params);
-    })).then((_containers) => {
+    })).then((containers) => {
       // Merge the containers, which each represent the contents of the imported style sheet, in place of the import
       // rule.
-      importRules.forEach((_rule, _index) => {
-        // rule.replaceWith(containers[index]);
+      importRules.forEach((rule, index) => {
+        rule.replaceWith(containers[index]);
       });
       return container;
     });
@@ -70,6 +69,9 @@ export default postcss.plugin<ImporterOptions>('postcss-importer', ({ resolvers 
   const ruleExtractor = createRuleExtractor(recursiveProcessor);
   recursiveProcessor.ruleExtractor = ruleExtractor;
 
+  // NOTE: we might need to reconsider this return value when we want to give many objects/functions access to the
+  // Result object. one idea is to only give those objects/functions access to the parts of Result that they need,
+  // and to proxy the warn functions and passing those proxies.
   return ruleExtractor;
 });
 

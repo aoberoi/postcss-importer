@@ -1,4 +1,7 @@
+import { dirname } from 'path';
 import { Resolver, ImportParams } from './index';
+import moduleResolve, { AsyncOpts } from 'resolve'; // tslint:disable-line:import-name
+import readCache from 'read-cache';
 
 export interface NodeResolverOptions {
   // TODO: maybe we don't need this afterall. in the old version, its only used when the file doesn't have a source
@@ -7,7 +10,6 @@ export interface NodeResolverOptions {
 }
 
 export default class NodeResolver implements Resolver {
-  // @ts-ignore
   private root: string;
 
   constructor({ root }: NodeResolverOptions = {}) {
@@ -15,11 +17,54 @@ export default class NodeResolver implements Resolver {
     this.root = root || process.cwd();
   }
 
-  public willResolve(_importParams: ImportParams): boolean {
-    return false;
+  public willResolve(importParams: ImportParams): boolean {
+    // if the location looks like a URL, bail from trying to resolve it
+    // TODO: should we attempt tp handle file:// protocol URLs?
+    return !(/^(?:[a-z]+:)?\/\//i.test(importParams.location));
   }
 
-  public resolve(_importParams: ImportParams): Promise<string> {
-    return Promise.resolve('');
+  public resolve(importParams: ImportParams): Promise<string> {
+    const moduleResolveOptions: AsyncOpts = {
+      basedir: importParams.from ? dirname(importParams.from) : this.root,
+
+      // TODO: i think this allows "bare" imports like `foo` to resolve to filenames like `foo.css`. is that a good
+      // thing? i think yes because this is how someone might expect the node module resolution algorithm to work, but
+      // if we become more strict (with a loss of compatibility with postcss-import) then are we encouraging users to
+      // be more future-proof (and more aligned with browsers)?
+      extensions: ['.css'],
+
+      packageFilter: (pkg) => {
+        // allow "style" key in package.json to override "main" key
+        if (pkg.style) {
+          pkg.main = pkg.style;
+        // otherwise, when the "main" key is not defined or doesn't reference a .css file, use "index.css" as the
+        // default
+        } else if (!pkg.main || !/\.css$/.test(pkg.main)) {
+          pkg.main = 'index.css';
+        }
+        return pkg;
+      },
+
+      // align better with node's module resolution algorithm
+      preserveSymlinks: false,
+    };
+
+    // NOTE: this differs from postcss-import because it doesn't attempt to resolve the module name as a local file
+    // unless it starts with `./`. this _might_ cause issues for existing projets like bootstrap, so we can revisit
+    // this decision later.
+    // TODO: store a cache map of identifiers to their resolved path
+    return moduleResolvePromise(importParams.location, moduleResolveOptions)
+      .then(readCache);
   }
+}
+
+// ----- Helpers -----
+
+/**
+ * Promisifies `moduleResolve()`. Can replace with `util.promisify(moduleResolve)` when minimum node is v8.
+ */
+function moduleResolvePromise(id: string, opts: AsyncOpts = {}): Promise<string> {
+  return new Promise((resolve, reject) => {
+    moduleResolve(id, opts, (error, path) => { if (error) return reject(error); resolve(path); });
+  });
 }

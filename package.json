@@ -17,7 +17,8 @@
     "build": "tsc",
     "build:clean": "shx rm -rf build",
     "test": "npm run lint && npm run test:unit",
-    "test:unit": " mocha -r ts-node/register test/unit/**/*.spec.ts"
+    "test:unit": " mocha -r ts-node/register test/unit/**/*.spec.ts",
+    "test:integration": "npm run build && mocha -r ts-node/register test/integration/**/*.ts"
   },
   "author": "Ankur Oberoi <aoberoi@gmail.com>",
   "license": "MIT",
@@ -31,6 +32,7 @@
     "@types/resolve": "0.0.8",
     "postcss": "^7.0.6",
     "postcss-value-parser": "^3.3.1",
+    "read-cache": "^1.0.0",
     "resolve": "^1.9.0"
   },
   "devDependencies": {

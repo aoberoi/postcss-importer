@@ -55,7 +55,7 @@ of your liking, then I think we end up with an improvement.
    I learn that it is needed. Ideally, we should use the set of `plugins` that come before this plugin in the postcss
    options each time we process another file. I hope there's an easy way to find that. If not, this would be a feature
    request to take to postcss. **NOTE**: I don't want to directly depend on any syntaxes or parsers. In order to
-   accomplish this, we need to find a way to get that those from postcss, so that the processsor can be invoked using
+   accomplish this, we need to find a way to get those from postcss, so that the processsor can be invoked using
    the same set of syntaxes or parsers for imported files.
 
 *  The `load` option is removed. I don't understand the use case for this option. It seems like something that either

@@ -7,6 +7,7 @@ export interface NodeResolverOptions {
 }
 
 export default class NodeResolver implements Resolver {
+  // @ts-ignore
   private root: string;
 
   constructor({ root }: NodeResolverOptions = {}) {
@@ -14,11 +15,11 @@ export default class NodeResolver implements Resolver {
     this.root = root || process.cwd();
   }
 
-  public willResolve(importParams: ImportParams): boolean {
+  public willResolve(_importParams: ImportParams): boolean {
     return false;
   }
 
-  public resolve(importParams: ImportParams): Promise<string> {
+  public resolve(_importParams: ImportParams): Promise<string> {
     return Promise.resolve('');
   }
 }

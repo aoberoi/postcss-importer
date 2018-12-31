@@ -16,7 +16,8 @@
     "lint": "tslint --project .",
     "build": "tsc",
     "build:clean": "shx rm -rf build",
-    "test": "npm run lint && exit 0 # TODO"
+    "test": "npm run lint && npm run test:unit",
+    "test:unit": " mocha -r ts-node/register test/unit/**/*.spec.ts"
   },
   "author": "Ankur Oberoi <aoberoi@gmail.com>",
   "license": "MIT",
@@ -33,7 +34,12 @@
     "resolve": "^1.9.0"
   },
   "devDependencies": {
+    "@types/chai": "^4.1.7",
+    "@types/mocha": "^5.2.5",
+    "chai": "^4.2.0",
+    "mocha": "^5.2.0",
     "shx": "^0.3.2",
+    "ts-node": "^7.0.1",
     "tslint": "^5.12.0",
     "tslint-config-airbnb": "^5.11.1",
     "tsutils": "^3.5.2",

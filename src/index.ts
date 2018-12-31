@@ -40,11 +40,11 @@ function createRuleExtractor(recursiveProcessor: RecursiveProcessor): TransformC
     return Promise.all(importRules.map((rule) => {
       const params = extractImportParams(rule);
       return recursiveProcessor.process(params);
-    })).then((containers) => {
+    })).then((_containers) => {
       // Merge the containers, which each represent the contents of the imported style sheet, in place of the import
       // rule.
-      importRules.forEach((rule, index) => {
-        rule.replaceWith(containers[index]);
+      importRules.forEach((_rule, _index) => {
+        // rule.replaceWith(containers[index]);
       });
       return container;
     });
@@ -112,16 +112,20 @@ export function extractImportParams(rule: AtRule): ImportParams {
     // TODO: should this instead be a warning? where does this error get caught?
     throw new Error('Cannot parse @import without params');
   }
+
+  // TODO: check the value of this in various conditions
+  const from = rule.source && rule.source.input && rule.source.input.file;
   const firstNode = parsed[0];
 
-  // TODO: where can we get the from value?
   if (firstNode.type === 'string') {
     return {
+      from,
       location: firstNode.value,
     };
   }
   if (firstNode.type === 'function') {
     return {
+      from,
       location: firstNode.nodes[0].value,
     };
   }

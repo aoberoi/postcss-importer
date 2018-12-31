@@ -99,7 +99,7 @@ export function findImportRules(container: Container): AtRule[] {
 }
 
 /**
- * Extracts an `ImportParams` object from an `AtRule` representing an `@import` rule.
+ * Extracts an `ImportParams` object from an `AtRule` representing an `@import` in the CSS.
  *
  * This function throws when the `@import` rule seems malformed or otherwise not extractable by the implementation.
  * The implementation allows for bare identifiers (e.g. `@import 'foo';`) or URLs (e.g. `@import url('foo')`).
@@ -113,7 +113,6 @@ export function extractImportParams(rule: AtRule): ImportParams {
     throw new Error('Cannot parse @import without params');
   }
 
-  // TODO: check the value of this in various conditions
   const from = rule.source && rule.source.input && rule.source.input.file;
   const firstNode = parsed[0];
 

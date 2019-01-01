@@ -1,8 +1,8 @@
 # PostCSS Importer
 
-**TODO**: add CI badges
+[![Build Status](https://travis-ci.com/aoberoi/postcss-importer.svg?branch=master)](https://travis-ci.com/aoberoi/postcss-importer)
 
-[PostCSS](https://github.com/postcss/postcss) plugin to inline files referenced with `@import`
+A [PostCSS](https://github.com/postcss/postcss) plugin to inline CSS `@import`s.
 
 > ⚠️ This plugin is still experimental. At this time, I am [open to feedback](github.com/aoberoi/postcss-importer) about
 > its design and usefulness, but its not fully documented, nor expected to work on production projects yet. Use at your

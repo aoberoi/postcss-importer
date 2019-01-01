@@ -1,12 +1,13 @@
 {
   "name": "postcss-importer",
-  "version": "0.1.0",
+  "version": "0.1.0-dev",
   "description": "PostCSS plugin to inline files referenced with @import",
   "keywords": [
     "postcss",
     "css",
     "postcss-plugin",
-    "import"
+    "import",
+    "importer"
   ],
   "main": "build/index.js",
   "files": [

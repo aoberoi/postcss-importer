@@ -1,80 +1,89 @@
 # PostCSS Importer
 
-[PostCSS] plugin to inline files referenced with `@import`
+**TODO**: add CI badges
 
-[PostCSS]: https://github.com/postcss/postcss
-[ci-img]:  https://travis-ci.org/aoberoi/postcss-importer.svg
-[ci]:      https://travis-ci.org/aoberoi/postcss-importer
+[PostCSS](https://github.com/postcss/postcss) plugin to inline files referenced with `@import`
 
-```css
-.foo {
-    /* Input example */
-}
-```
-
-```css
-.foo {
-  /* Output example */
-}
-```
+> ⚠️ This plugin is still experimental. At this time, I am [open to feedback](github.com/aoberoi/postcss-importer) about
+> its design and usefulness, but its not fully documented, nor expected to work on production projects yet. Use at your
+> own risk.
 
 ## Usage
 
 ```js
-postcss([ require('postcss-importer') ])
+postcss([ require('postcss-importer')(options) ])
 ```
 
-See [PostCSS] docs for examples for your environment.
+**TODO**: document options, link to PostCSS runner options in docs.
 
 ## Why?
 
-This is an experiment to find out if I can improve on the existing postcss-import plugin by removing features I don't
-feel make sense. I hope to improve both the performance, and the readability/maintainability of the code.
+This is an experiment to find out if I can improve on the existing
+[postcss-import](https://github.com/postcss/postcss-import) plugin with substantially different design. I think that
+project is great, and all the maintainers and contributors of that project deserve congratulations for putting together
+such a robust piece of software. I learned a lot from reading the code, and I felt inspired. I aim to improve it in
+three specific ways:
 
-I'm not removing features because I don't think they have valid use cases, but rather because I think most of them can
-be solved simply with a custom resolver. If we instead address those use cases by making it easier to build the resolver
-of your liking, then I think we end up with an improvement.
+1. _Performance_: My understanding from reading the existing plugin code is that each import is processed serially. This
+   strategy is probably great in most cases, because later imports benefit from the cached data from previous imports.
+   This ensures that a single file is never read more than strictly necessary (only once as long as it doesn't change).
+   So the experiment is to find out if an increase in parallelism, trading off the guarantee for minimum number of
+   reads, would yield any measurable performance benefits. I'll eventually measure this using the
+   [`postcss-benchmark`](https://github.com/postcss/benchmark) methodology.
 
-*  No enforcement of the specification's constraint that `@import` can only be preceeded by other `@import`s and
-   `@charset`s. Also, no enforcement that these atrules must be direct descendents of the root.
+2. _Simplified design_: I think one of the tradeoffs in making a project versatile to many use cases (which helps gain
+   popularity) is that the design becomes more complex over time. This happens naturally to any good design, if the use
+   cases grow organically and are solved piecemeal. In hindsight, I felt like many of the plugin options could be
+   reduced or eliminated if we used different abstractions. In this experiment, I'm trying to build those abstractions
+   in order to arrive at a design that addresses most (but not all) of the original use cases. I've outlined some
+   specific ideas in [simplification.md](docs/simplification.md).
 
-*  No `filter` option. Instead, provide a factory for a resolver which can wrap an array of resolvers and respond to a
-   synchronous query as to whether or not the resolver can handle a specific identifier. The main difference is that
-   the query wouldn't contain the path on disk (that's a specific job of the `NodeResolver`). However, the query does
-   contain the parsed params of the `AtRule` and the location from where the request is being made. This information
-   could be used to invoke a static method of the `NodeResolver` in order to build the same functionality.
+3. _Maintainability_: This is completely subjective, but I found the code challenging to read and follow. There are are
+   some excellent resources to accelerate the job of plugin developers such as the plugin boilerplate, the eslint
+   config, etc. But I think there's room for improvement by using a code style that emphasizes code comments and
+   clearer APIs. I've been using [TypeScript](https://www.typescriptlang.org/) on a few projects, and I think it can
+   help meet that need. Code style is checked using [tslint](https://palantir.github.io/tslint/) and its considerably
+   stricter. I've noticed that PostCSS core already has TypeScript definitions in the repo, so I'm hoping to understand
+   if these opinions are welcome or if they cause too much friction for community members who want to participate.
 
-*  The `root` option is moved to the `NodeResolver`, and is specifically positioned as an optimization. By providing a
-   `root`, the user can help this plugin skip I/O with the disk to attempt to resolve the identifier in places where the
-   user knows would fail.
+### Why not just contribute these ideas upstream?
 
-*  The `paths` option is removed. If you need to initiate resolution from multiple locations on disk, you can initialize
-   several `NodeResolver`s with different `root`s, and put them in an array.
+Maybe in the future, I can! I felt that my approach was so different from the existing design, that what I created
+likely wouldn't make a good PR. I started this as a learning exercise, and I didn't want to encumber that experience
+with trying to fit my ideas into an existing box. I needed the freedom to be creative, so I started from scratch. If
+any of these ideas catch on, I'm open to working with the community to get them where they are most effective.
 
-*  The `plugins` option is removed. I don't understand the use case for this option, and I'm willing to reinstate it if
-   I learn that it is needed. Ideally, we should use the set of `plugins` that come before this plugin in the postcss
-   options each time we process another file. I hope there's an easy way to find that. If not, this would be a feature
-   request to take to postcss. **NOTE**: I don't want to directly depend on any syntaxes or parsers. In order to
-   accomplish this, we need to find a way to get those from postcss, so that the processsor can be invoked using
-   the same set of syntaxes or parsers for imported files.
+PS. I will probably blog about the journey of this project later. [Follow me on Twitter](https://twitter.com/aoberoi) if
+you want to know when I've published a post.
 
-*  The `load` option is removed. I don't understand the use case for this option. It seems like something that either
-   would be done with a custom resolver, or using some other options of the `NodeResolver`.
+## Example
 
-*  The `skipDuplicates` option is removed. In my opinion, this can be solved in the same way as use cases that require
-   the `filter` option, as long as the user is willing to do the bookkeeping. For situations like `normalize.css`, as
-   the documentation mentions, it may be cheaper and easier to do some basic string operations to implement the
-   bookkeeping, rather than storing a large cache of all the raw content that was ever been loaded.
+**TODO**: Add better examples
 
-*  The `addModulesDirectories` option is removed. The use case for this option is likely for using custom package
-   managers (such as `bower`) that place packages in a directory named something other than `node_modules`. This would
-   be better addressed with a custom resolver that works in a way that suits that specific package manager's
-   conventions. If it is as simple as a differently named directory, then implementing this custom resolver would be
-   as simple as forking the `NodeResolver` code and replacing the property. If I learn of other use cases where it
-   might make sense, it would be implemented as an option for `NodeResolver`, not this plugin.
+**Input**
 
-   *  Also, the default value of `"web_modules"` is removed. I understand this comes from the webpack / browserify
-      world, but I don't know if developers actually use this in practice anymore.
+```css
+/* foo.css */
+.foo {
+  padding: 2em;
+}
 
-*  A new resolver, `WebResolver`, can be implemented to fetch files from URLs. That would being more parity with how
-   browsers treat `@import` rules in CSS.
+/* bar.css */
+@import './foo.css';
+
+.bar {
+  margin: 0;
+}
+```
+
+**Output** (processed `bar.css`)
+
+```css
+.foo {
+  padding: 2em;
+}
+
+.bar {
+  margin: 0;
+}
+```

@@ -3,29 +3,48 @@ import { Resolver, ImportParams } from './index';
 import moduleResolve, { AsyncOpts } from 'resolve'; // tslint:disable-line:import-name
 import readCache from 'read-cache';
 
+/**
+ * Options for initializing a `NodeResolver`
+ */
 export interface NodeResolverOptions {
-  // TODO: maybe we don't need this afterall. in the old version, its only used when the file doesn't have a source
-  // file defined
+  /** Root directory to resolve relative imports from. */
   root?: string;
 }
 
+/**
+ * Resolver for string identifiers that refer to files on the filesystem. This resolver uses the Node module resolution
+ * algorithm to find the target files.
+ *
+ * TODO: should there be an alternate Resolver interface that is just a simple function?
+ */
 export default class NodeResolver implements Resolver {
+  /**
+   * Root directory to resolve relative imports from.
+   *
+   * TODO: change the name? root refers to other things in this codebase.
+   */
   private root: string;
 
   constructor({ root }: NodeResolverOptions = {}) {
     // TODO: do i need to make sure the passed in option is an absolute path, or just document that?
-    this.root = root || process.cwd();
+    this.root = root !== undefined ? root : process.cwd();
   }
 
+  /**
+   * Rejects locations that look like URLs because they are not resolvable as files on the local filesystem.
+   */
   public willResolve(importParams: ImportParams): boolean {
     // if the location looks like a URL, bail from trying to resolve it
     // TODO: should we attempt tp handle file:// protocol URLs?
     return !(/^(?:[a-z]+:)?\/\//i.test(importParams.location));
   }
 
+  /**
+   * Resolves the location and loads the content from the filesystem.
+   */
   public resolve(importParams: ImportParams): Promise<string> {
     const moduleResolveOptions: AsyncOpts = {
-      basedir: importParams.from ? dirname(importParams.from) : this.root,
+      basedir: importParams.from !== undefined ? dirname(importParams.from) : this.root,
 
       // TODO: i think this allows "bare" imports like `foo` to resolve to filenames like `foo.css`. is that a good
       // thing? i think yes because this is how someone might expect the node module resolution algorithm to work, but
@@ -65,6 +84,11 @@ export default class NodeResolver implements Resolver {
  */
 function moduleResolvePromise(id: string, opts: AsyncOpts = {}): Promise<string> {
   return new Promise((resolve, reject) => {
-    moduleResolve(id, opts, (error, path) => { if (error) return reject(error); resolve(path); });
+    moduleResolve(id, opts, (error, path) => {
+      if (error === null || error === undefined) {
+        return reject(error);
+      }
+      resolve(path);
+    });
   });
 }

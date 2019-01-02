@@ -4,35 +4,39 @@ import NodeResolver from './NodeResolver';
 import ResolverChain from './ResolverChain';
 import RecursiveProcessor from './RecursiveProcessor';
 
-/*
- * General pipeline for how this plugin works:
+/**
+ * The details of the `@import` rule's parsed parameters that `Resolver`s use to retrieve CSS string content
  *
- * 1. Find all the `@import` rules (`AtRule`s) in the root.
- * 2. Filter out the rules that we don't want to load (like those with a scheme in the URL).
- * 3. Resolve the file on disk that should be loaded.
- * 4. Load the file (either from cache if it was previously loaded, or from disk if not).
- * 5. Go to step 1 (this will involve invoking postcss's processor once again), and continue from here if there are no
- *    `@import` rules in the file contents.
- * 6. Recombine all the ASTs into the root.
+ * TODO: handle media?
  */
-
 export interface ImportParams {
-  location: string; // this might be an identifier, or a URL
-  from?: string; // this is the location for the file that is doing the import
-  // TODO: handle media?
+  /** The identifier used in the import, either on its own or inside of the `url()` function. */
+  location: string;
+  /** The absolute path to the file where the import rule was seen. */
+  from?: string;
 }
 
+/**
+ * Resolvers are responsible for turning `ImportParams` into CSS string content. See `NodeResolver` for an example.
+ */
 export interface Resolver {
-  willResolve?: (importParams: ImportParams) => boolean;
-  // TODO: do i need to return a file path?
+  /** Returns a Promise for CSS string content for the given `ImportParams` */
   resolve: (importParams: ImportParams) => Promise<string>;
+  /** Returns false when the resolver can synchronously determine that it cannot resolve the given `ImportParams` */
+  willResolve?: (importParams: ImportParams) => boolean;
 }
 
+/**
+ * Options for initializing this plugin.
+ */
 export interface ImporterOptions {
   /** An ordered list of resolvers to use to find the imported style sheet. Defaults to a single NodeResolver. */
   resolvers?: Resolver[];
 }
 
+/**
+ * Factory for a function that can extract rules from an AST, and start the recursive processing of all imports.
+ */
 function createRuleExtractor(recursiveProcessor: RecursiveProcessor): TransformCallback {
   return async (container: Container, _result?: Result): Promise<Container> => {
     const importRules = findImportRules(container);
@@ -52,6 +56,8 @@ function createRuleExtractor(recursiveProcessor: RecursiveProcessor): TransformC
 
 /**
  * Importer plugin
+ *
+ * TODO: give a general outline of the steps
  */
 export default postcss.plugin<ImporterOptions>('postcss-importer', ({ resolvers = [] }: ImporterOptions = {}) => {
   // Build the resolver, and potentially the resolver chain
@@ -97,7 +103,7 @@ export function findImportRules(container: Container): AtRule[] {
   // plugin doesn't try to enforce the spec, but in this case it would produce a nonesense output if we ignored this.
   // So, we filter this condition out below.
   // TODO: warn when there's a nodes property. in order to do this i need the result instance.
-  return importRules.filter(r => !r.nodes);
+  return importRules.filter(r => r.nodes === undefined);
 }
 
 /**
@@ -115,7 +121,9 @@ export function extractImportParams(rule: AtRule): ImportParams {
     throw new Error('Cannot parse @import without params');
   }
 
-  const from = rule.source && rule.source.input && rule.source.input.file;
+  // NOTE: the typings for rule.source (and its sub-properties) should be optional
+  // tslint:disable-next-line:strict-boolean-expressions
+  const from: string | undefined = rule.source && rule.source.input && rule.source.input.file;
   const firstNode = parsed[0];
 
   if (firstNode.type === 'string') {

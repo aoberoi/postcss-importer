@@ -24,3 +24,21 @@ describe('simple single import', () => {
     });
   });
 });
+
+describe('badly formed import', () => {
+  it('should warn when import rule has a block', (done) => {
+    const filename = resolve(__dirname, './fixtures/bad_import_with_block.css');
+    readFile(filename, (error, css) => {
+      if (error) return done(error);
+      postcss([importer()])
+        .process(css, { from: filename, to: filename })
+        .then((result) => {
+          const warnings = result.warnings();
+          // TODO: assert more specifically the warning we want to see
+          assert.isAtLeast(warnings.length, 1);
+          done();
+        })
+        .catch(done);
+    })
+  });
+});

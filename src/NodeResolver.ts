@@ -2,6 +2,7 @@ import { dirname } from 'path';
 import { Resolver, ImportParams } from './index';
 import moduleResolve, { AsyncOpts } from 'resolve'; // tslint:disable-line:import-name
 import readCache from 'read-cache';
+import { Result } from 'postcss';
 
 /**
  * Options for initializing a `NodeResolver`
@@ -42,7 +43,7 @@ export default class NodeResolver implements Resolver {
   /**
    * Resolves the location and loads the content from the filesystem.
    */
-  public resolve(importParams: ImportParams): Promise<string> {
+  public resolve(importParams: ImportParams, _result: Result): Promise<string> {
     const moduleResolveOptions: AsyncOpts = {
       basedir: importParams.from !== undefined ? dirname(importParams.from) : this.root,
 

@@ -1,20 +1,21 @@
-import { parse, Container } from 'postcss';
+import { parse, Container, Result } from 'postcss';
 import { Resolver, ImportParams } from './index';
 
 /**
  * Processes content that comes from additional imports. Processing is turning a CSS string into an AST and running
  * it through a set of plugins. This is recursive since it will end up being run on imports within imports.
- *
- * TODO: should a method of this object be the "root" of the process?
  */
 export default class RecursiveProcessor {
   /** Resolver used to obtain the CSS strings */
   private resolver: Resolver;
-  /** TODO: why is this here? */
+  /** Rule extractor that deals with finding imports in newly loaded content from the Resolver. */
   public ruleExtractor?: any;
+  /** The initial processor's result */
+  private result: Result;
 
-  constructor(resolver: Resolver) {
+  constructor(resolver: Resolver, result: Result) {
     this.resolver = resolver;
+    this.result = result;
   }
 
   /**
@@ -27,7 +28,7 @@ export default class RecursiveProcessor {
 
     // call the resolver to get string content of the file, process it, and hand it back to the ruleExtractor
     // TODO: this might throw
-    const content = await this.resolver.resolve(importParams);
+    const content = await this.resolver.resolve(importParams, this.result);
 
     // NOTE: there may be a way to get the initial Processor was used to run this plugin (which contains instances of
     // all the other plugins) so that we can process all imported files with all the preceding plugins. the effect
@@ -39,7 +40,7 @@ export default class RecursiveProcessor {
     // oh yeah, this is how we would get any of the other processing options such as syntax, parser, stringifier, source
     // map options, and the `to` destination.
 
-    // process the content through postcss to get an AST
-    return parse(content, { from: importParams.location });
+    // process the content through postcss to get an AST, feed this back through the rule extractor for recursion.
+    return this.ruleExtractor(parse(content, { from: importParams.from }));
   }
 }

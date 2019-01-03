@@ -1,4 +1,5 @@
 import { Resolver, ImportParams } from './index';
+import { Result } from 'postcss';
 
 /**
  * A Resolver that encapsulates an ordered list of Resolvers that can be queried in order to produce a result.
@@ -20,11 +21,11 @@ export default class ResolverChain implements Resolver {
    * @param importParams parameters from the `@import` rule
    * @param from location that's requesting the parameters to be resolved
    */
-  public willResolve(importParams: ImportParams): boolean {
+  public willResolve(importParams: ImportParams, result: Result): boolean {
     let canResolve = false;
     for (const resolver of this.resolvers) {
       if (resolver.willResolve !== undefined) {
-        canResolve = resolver.willResolve(importParams);
+        canResolve = resolver.willResolve(importParams, result);
       }
       if (canResolve) {
         return true;
@@ -40,10 +41,10 @@ export default class ResolverChain implements Resolver {
    * @param importParams parameters from the `@import` rule
    * @param from location that's requesting the parameters to be resolved
    */
-  public async resolve(importParams: ImportParams): Promise<string> {
+  public async resolve(importParams: ImportParams, result: Result): Promise<string> {
     for (const resolver of this.resolvers) {
       try {
-        return await resolver.resolve(importParams);
+        return await resolver.resolve(importParams, result);
       } finally { } // tslint:disable-line:no-empty Ignore individual resolver errors
     }
     throw new Error('Resolution failed.');

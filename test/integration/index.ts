@@ -5,8 +5,8 @@ import { readFile } from 'fs';
 import { resolve } from 'path';
 import importer from '../../build/index'; // tslint:disable-line:import-name
 
-describe('simple single import', () => {
-  it('should work', (done) => {
+describe('plugin with default options', () => {
+  it('processes a simple import', (done) => {
     const filename = resolve(__dirname, './fixtures/imports_foo.css');
 
     readFile(filename, (error, css) => {
@@ -23,9 +23,7 @@ describe('simple single import', () => {
         .catch(done);
     });
   });
-});
 
-describe('badly formed import', () => {
   it('should warn when import rule has a block', (done) => {
     const filename = resolve(__dirname, './fixtures/bad_import_with_block.css');
     readFile(filename, (error, css) => {

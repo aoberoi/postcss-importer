@@ -70,11 +70,11 @@ export default class NodeResolver implements Resolver {
     };
 
     // NOTE: this differs from postcss-import because it doesn't attempt to resolve the module name as a local file
-    // unless it starts with `./`. this _might_ cause issues for existing projets like bootstrap, so we can revisit
+    // unless it starts with `./`. this _might_ cause issues for existing projects like bootstrap, so we can revisit
     // this decision later.
     // TODO: store a cache map of identifiers to their resolved path
     return moduleResolvePromise(importParams.location, moduleResolveOptions)
-      .then(readCache);
+      .then((resolvedLocation: string) => readCache(resolvedLocation, 'utf8'));
   }
 }
 
@@ -86,7 +86,7 @@ export default class NodeResolver implements Resolver {
 function moduleResolvePromise(id: string, opts: AsyncOpts = {}): Promise<string> {
   return new Promise((resolve, reject) => {
     moduleResolve(id, opts, (error, path) => {
-      if (error === null || error === undefined) {
+      if (error !== null && error !== undefined) {
         return reject(error);
       }
       resolve(path);

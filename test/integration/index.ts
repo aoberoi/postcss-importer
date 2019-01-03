@@ -24,6 +24,24 @@ describe('plugin with default options', () => {
     });
   });
 
+  it('should process a transitive import', (done) => {
+    const filename = resolve(__dirname, './fixtures/imports_foo_transitively.css');
+    readFile(filename, (error, css) => {
+      if (error) return done(error);
+      postcss([importer()])
+        .process(css, { from: filename, to: filename })
+        .then((result) => {
+          // TODO: assert on the ordering
+          console.log(result.css);
+          assert.include(result.css, '.foo { color: blue; }');
+          assert.include(result.css, '.imports_foo { color: blue; }');
+          assert.include(result.css, '.imports_foo_transitively { color: orange; }');
+          done();
+        })
+        .catch(done);
+    });
+  });
+
   it('should warn when import rule has a block', (done) => {
     const filename = resolve(__dirname, './fixtures/bad_import_with_block.css');
     readFile(filename, (error, css) => {

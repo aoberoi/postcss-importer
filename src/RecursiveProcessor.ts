@@ -41,6 +41,6 @@ export default class RecursiveProcessor {
     // map options, and the `to` destination.
 
     // process the content through postcss to get an AST, feed this back through the rule extractor for recursion.
-    return this.ruleExtractor(parse(content, { from: importParams.location }));
+    return this.ruleExtractor(parse(content, { from: importParams.from }));
   }
 }

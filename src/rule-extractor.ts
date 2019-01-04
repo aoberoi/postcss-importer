@@ -89,6 +89,7 @@ export function extractImportParams(rule: AtRule): ImportParams {
 
   // NOTE: the typings for rule.source (and its sub-properties) might be optional:
   // https://github.com/postcss/postcss/issues/1214
+  // tslint:disable-next-line:strict-boolean-expressions
   const from: string | undefined = rule.source && rule.source.input && rule.source.input.file;
   const firstNode = parsed[0];
 

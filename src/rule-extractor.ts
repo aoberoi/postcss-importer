@@ -10,6 +10,8 @@ export interface ImportParams {
   location: string;
   /** The absolute path to the file where the import rule was seen. */
   from?: string;
+  /** A reference to the AtRule from which this was extracted */
+  atrule: AtRule;
 }
 
 /**
@@ -37,7 +39,10 @@ export default function createRuleExtractor(processor: RecursiveProcessor, resul
     })).then((containers) => {
       // Merge the resulting containers in place of the import rule which generated them
       importRules.forEach((rule, index) => {
-        rule.replaceWith(containers[index]);
+        // These will be equal when the resolver fails, and calling replaceWith() in that case would be destructive
+        if (rule !== containers[index]) {
+          rule.replaceWith(containers[index]);
+        }
       });
       return container;
     });
@@ -97,12 +102,14 @@ export function extractImportParams(rule: AtRule): ImportParams {
     return {
       from,
       location: firstNode.value,
+      atrule: rule,
     };
   }
   if (firstNode.type === 'function') {
     return {
       from,
       location: firstNode.nodes[0].value,
+      atrule: rule,
     };
   }
   throw rule.error(

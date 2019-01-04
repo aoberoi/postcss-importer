@@ -27,9 +27,24 @@ export default class RecursiveProcessor {
       throw new Error('Cannot process an import without a rule extractor');
     }
 
-    // call the resolver to get string content of the file, process it, and hand it back to the ruleExtractor
-    // TODO: this might throw
-    const content = await this.resolver.resolve(importParams, this.result);
+    // call the resolver to get string content of the file
+    let content;
+    try {
+      content = await this.resolver.resolve(importParams, this.result);
+    } catch (resolverError) {
+      // if the import cannot be resolved, output a warning, and return original AtRule to stay in its place
+      // TODO: should there be an option about whether this is a warning or an error?
+      this.result.warn(`Failed to resolve import of ${importParams.location} from ${importParams.from}`, {
+        node: importParams.atrule,
+      });
+      return importParams.atrule;
+    }
+
+    // TODO: output dependency message
+    // type: "dependency",
+    // plugin: "postcss-importer",
+    // file: file,
+    // parent: sourceFile,
 
     // NOTE: there may be a way to get the initial Processor was used to run this plugin (which contains instances of
     // all the other plugins) so that we can process all imported files with all the preceding plugins. the effect

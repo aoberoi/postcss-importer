@@ -29,8 +29,9 @@ export default class RecursiveProcessor {
 
     // call the resolver to get string content of the file
     let content;
+    let file;
     try {
-      content = await this.resolver.resolve(importParams, this.result);
+      ({ content, file } = await this.resolver.resolve(importParams, this.result));
     } catch (resolverError) {
       // if the import cannot be resolved, output a warning, and return original AtRule to stay in its place
       // TODO: should there be an option about whether this is a warning or an error?
@@ -40,11 +41,15 @@ export default class RecursiveProcessor {
       return importParams.atrule;
     }
 
-    // TODO: output dependency message
-    // type: "dependency",
-    // plugin: "postcss-importer",
-    // file: file,
-    // parent: sourceFile,
+    // Log the dependency message. This is mostly use by watchers.
+    this.result.messages.push({
+      type: 'dependency',
+      plugin: 'postcss-importer',
+      // @ts-ignore
+      // tslint:disable-next-line
+      file,
+      parent: importParams.from,
+    });
 
     // NOTE: there may be a way to get the initial Processor was used to run this plugin (which contains instances of
     // all the other plugins) so that we can process all imported files with all the preceding plugins. the effect

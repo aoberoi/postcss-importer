@@ -3,7 +3,7 @@ import _nodeResolve, { AsyncOpts } from 'resolve'; // tslint:disable-line:import
 import readCache from 'read-cache';
 import promisify from 'util.promisify'; // tslint:disable-line:import-name
 import { Result } from 'postcss';
-import { Resolver } from './index';
+import { Resolver, ResolverResult } from './index';
 import { ImportParams } from '../rule-extractor';
 
 const nodeResolve = promisify(_nodeResolve);
@@ -43,7 +43,7 @@ export default class NodeResolver implements Resolver {
   /**
    * Resolves the location and loads the content from the filesystem.
    */
-  public resolve(importParams: ImportParams, _result: Result): Promise<string> {
+  public resolve(importParams: ImportParams, _result: Result): Promise<ResolverResult> {
     const moduleResolveOptions: AsyncOpts = {
       basedir: importParams.from !== undefined ? dirname(importParams.from) : this.root,
       extensions: [], // see: https://github.com/aoberoi/postcss-importer/issues/10
@@ -64,6 +64,12 @@ export default class NodeResolver implements Resolver {
     // Option for relative imports. see: https://github.com/aoberoi/postcss-importer/issues/11
     // Cache ImportParams to path mapping. see: https://github.com/aoberoi/postcss-importer/issues/12
     return nodeResolve(importParams.location, moduleResolveOptions)
-      .then((resolvedLocation: string) => readCache(resolvedLocation, 'utf8'));
+      .then((resolvedLocation: string) => readCache(resolvedLocation, 'utf8')
+        .then((content: string) => {
+          return {
+            content,
+            file: resolvedLocation,
+          };
+        }));
   }
 }

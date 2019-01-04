@@ -33,7 +33,7 @@ export default postcss.plugin<ImporterOptions>('postcss-importer', ({ resolvers 
   // and to proxy the warn functions and passing those proxies.
   // return ruleExtractor;
   const plugin: TransformCallback = async (root: Root, result?: Result): Promise<Container> => {
-    // TODO: remove the following check once the type definitions are updated. result should not be optional.
+    // TODO: remove the following check if this issue gets fixed: https://github.com/postcss/postcss/issues/1213
     if (result === undefined) {
       throw new Error('postcss-importer cannot run without a result defined');
     }

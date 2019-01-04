@@ -14,10 +14,14 @@ export interface ImportParams {
   from?: string;
 }
 
+interface RuleExtractor {
+  (container: Container): Promise<Container>;
+}
+
 /**
  * Factory for a function that can extract rules from an AST, and start the recursive processing of all imports.
  */
-export default function createRuleExtractor(processor: RecursiveProcessor, result: Result): TransformCallback {
+export default function createRuleExtractor(processor: RecursiveProcessor, result: Result): RuleExtractor {
   return async (container: Container): Promise<Container> => {
     const importRules = findImportRules(container, result);
     return Promise.all(importRules.map((rule) => {

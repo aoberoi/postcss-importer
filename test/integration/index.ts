@@ -76,4 +76,25 @@ describe('plugin with default options', () => {
         .catch(done);
     });
   });
+
+  it('should warn when import resolution fails', (done) => {
+    const filename = resolve(__dirname, './fixtures/fail_to_resolve.css');
+    readFile(filename, (error, css) => {
+      if (error) return done(error);
+      postcss([importer()])
+        .process(css, { from: filename, to: filename })
+        .then((result) => {
+          const warnings = result.warnings();
+          // TODO: assert more specifically the warning we want to see
+          // TODO: assert something about the position in the source where the warning references (sourcemaps). the
+          // closer the position of the warning to where the bad import occurred, the more useful it is to the user.
+          assert.isAtLeast(warnings.length, 1);
+          // TODO: assert on the ordering of the following
+          assert.include(result.css, "@import './huh.css';");
+          assert.include(result.css, '.fail_to_resolve { color: fuchsia; }');
+          done();
+        })
+        .catch(done);
+    });
+  });
 });

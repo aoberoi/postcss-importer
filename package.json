@@ -9,7 +9,7 @@
     "import",
     "importer"
   ],
-  "main": "build/index.js",
+  "main": "build/plugin.js",
   "files": [
     "build/**/*"
   ],

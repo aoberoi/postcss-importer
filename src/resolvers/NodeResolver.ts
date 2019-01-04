@@ -1,8 +1,9 @@
 import { dirname } from 'path';
-import { Resolver, ImportParams } from './index';
 import moduleResolve, { AsyncOpts } from 'resolve'; // tslint:disable-line:import-name
 import readCache from 'read-cache';
 import { Result } from 'postcss';
+import { Resolver } from './index';
+import { ImportParams } from '../rule-extractor';
 
 /**
  * Options for initializing a `NodeResolver`

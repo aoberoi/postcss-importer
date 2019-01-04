@@ -1,5 +1,6 @@
 import { parse, Container, Result } from 'postcss';
-import { Resolver, ImportParams } from './index';
+import { Resolver } from './resolvers';
+import { ImportParams } from './rule-extractor';
 
 /**
  * Processes content that comes from additional imports. Processing is turning a CSS string into an AST and running

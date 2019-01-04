@@ -10,14 +10,23 @@
       "group": {
         "kind": "build",
         "isDefault": true
-      }
+      },
+      "problemMatcher": [
+        "$tsc"
+      ]
     },
     {
+      "label": "TSLint",
       "type": "npm",
       "script": "lint",
-      "problemMatcher": [
-        "$tslint5"
-      ]
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": {
+        "base": "$tslint5",
+        "fileLocation": "relative"
+      }
     }
   ]
 }

@@ -59,5 +59,8 @@
     }]
     // TODO: find a rule similar to https://palantir.github.io/tslint/rules/no-construct/, except it bans those types
     // from interfaces (e.g. a function that returns Boolean is an error, it should return boolean)
+  },
+  "linterOptions": {
+    "format": "verbose"
   }
 }

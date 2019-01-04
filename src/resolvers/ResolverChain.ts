@@ -1,5 +1,5 @@
 import { ImportParams } from '../rule-extractor';
-import { Resolver } from './index';
+import { Resolver, ResolverResult } from './index';
 import { Result } from 'postcss';
 
 /**
@@ -42,7 +42,7 @@ export default class ResolverChain implements Resolver {
    * @param importParams parameters from the `@import` rule
    * @param from location that's requesting the parameters to be resolved
    */
-  public async resolve(importParams: ImportParams, result: Result): Promise<string> {
+  public async resolve(importParams: ImportParams, result: Result): Promise<ResolverResult> {
     for (const resolver of this.resolvers) {
       try {
         return await resolver.resolve(importParams, result);

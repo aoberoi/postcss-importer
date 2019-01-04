@@ -1,4 +1,5 @@
-import { Resolver, ImportParams } from './index';
+import { ImportParams } from '../rule-extractor';
+import { Resolver } from './index';
 import { Result } from 'postcss';
 
 /**

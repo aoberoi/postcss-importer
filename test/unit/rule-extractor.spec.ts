@@ -1,4 +1,4 @@
-import { extractImportParams } from '../../src/index';
+import { extractImportParams } from '../../src/rule-extractor';
 import { parse, AtRule } from 'postcss';
 import 'mocha'; // tslint:disable-line:no-implicit-dependencies
 import { assert } from 'chai'; // tslint:disable-line:no-implicit-dependencies

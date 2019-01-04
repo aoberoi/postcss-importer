@@ -49,7 +49,27 @@ describe('plugin with default options', () => {
         .process(css, { from: filename, to: filename })
         .then((result) => {
           const warnings = result.warnings();
+          // TODO: should we still assert the content of the output?
           // TODO: assert more specifically the warning we want to see
+          assert.isAtLeast(warnings.length, 1);
+          done();
+        })
+        .catch(done);
+    });
+  });
+
+  it('should warn when transitive import rule has a block', (done) => {
+    const filename = resolve(__dirname, './fixtures/imports_bad_import.css');
+    readFile(filename, (error, css) => {
+      if (error) return done(error);
+      postcss([importer()])
+        .process(css, { from: filename, to: filename })
+        .then((result) => {
+          const warnings = result.warnings();
+          // TODO: should we still assert the content of the output?
+          // TODO: assert more specifically the warning we want to see
+          // TODO: assert something about the position in the source where the warning references (sourcemaps). the
+          // closer the position of the warning to where the bad import occurred, the more useful it is to the user.
           assert.isAtLeast(warnings.length, 1);
           done();
         })

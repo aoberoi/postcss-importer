@@ -1,7 +1,7 @@
-import postcss, { Result, Root, Container, TransformCallback } from 'postcss';
+import postcss, { Result, Root, Container } from 'postcss';
 import createRuleExtractor from './rule-extractor'; // tslint:disable-line:import-name
 import RecursiveProcessor from './RecursiveProcessor';
-import { Resolver, NodeResolver, ResolverChain } from './resolvers';
+import { Resolver, NodeResolver, NodeResolverOptions, ResolverChain } from './resolvers';
 
 /**
  * Options for initializing this plugin.
@@ -14,7 +14,12 @@ export interface ImporterOptions {
 /**
  * Importer plugin
  *
- * TODO: give a general outline of the steps
+ * The incoming CSS is processed through a pipeline of functions/objects that may repeat recursively.
+ *
+ *      /‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\
+ *      |                                              |
+ *      ↓                                              |
+ * ruleExtractor ---(may return or recurse)--→ RecursiveProcessor --→ Resolver(s)
  */
 export default postcss.plugin<ImporterOptions>('postcss-importer', ({ resolvers = [] }: ImporterOptions = {}) => {
   // Build the resolver, and potentially the resolver chain
@@ -28,11 +33,7 @@ export default postcss.plugin<ImporterOptions>('postcss-importer', ({ resolvers 
     return new ResolverChain(resolvers);
   })();
 
-  // NOTE: we might need to reconsider this return value when we want to give many objects/functions access to the
-  // Result object. one idea is to only give those objects/functions access to the parts of Result that they need,
-  // and to proxy the warn functions and passing those proxies.
-  // return ruleExtractor;
-  const plugin: TransformCallback = async (root: Root, result?: Result): Promise<Container> => {
+  return async (root: Root, result?: Result): Promise<Container> => {
     // TODO: remove the following check if this issue gets fixed: https://github.com/postcss/postcss/issues/1213
     if (result === undefined) {
       throw new Error('postcss-importer cannot run without a result defined');
@@ -46,8 +47,7 @@ export default postcss.plugin<ImporterOptions>('postcss-importer', ({ resolvers 
     // kick off processing at the root
     return ruleExtractor(root);
   };
-  return plugin;
 });
 
 // Re-exporting interfaces/values that are meant to be public
-export { Resolver, NodeResolver, ResolverChain };
+export { Resolver, NodeResolver, NodeResolverOptions, ResolverChain };

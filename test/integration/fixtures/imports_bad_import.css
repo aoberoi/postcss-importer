@@ -1,0 +1,3 @@
+@import './bad_import_with_block.css';
+
+.imports_bad_import { color: yellow; }

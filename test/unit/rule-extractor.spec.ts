@@ -6,7 +6,7 @@ import { assert } from 'chai'; // tslint:disable-line:no-implicit-dependencies
 describe('extractImportParams()', () => {
   it('should throw when the rule has no params', () => {
     const rule = atRuleFromString('@import;');
-    assert.throws(() => { extractImportParams(rule); }, /Cannot parse @import without params/);
+    assert.throws(() => { extractImportParams(rule); }, /Cannot parse @import without an identifier/);
   });
   it('should extract a plain identifier location', () => {
     const identifier = 'foo';

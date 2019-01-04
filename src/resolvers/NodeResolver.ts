@@ -1,23 +1,24 @@
 import { dirname } from 'path';
-import moduleResolve, { AsyncOpts } from 'resolve'; // tslint:disable-line:import-name
+import _nodeResolve, { AsyncOpts } from 'resolve'; // tslint:disable-line:import-name
 import readCache from 'read-cache';
+import promisify from 'util.promisify'; // tslint:disable-line:import-name
 import { Result } from 'postcss';
 import { Resolver } from './index';
 import { ImportParams } from '../rule-extractor';
+
+const nodeResolve = promisify(_nodeResolve);
 
 /**
  * Options for initializing a `NodeResolver`
  */
 export interface NodeResolverOptions {
-  /** Root directory to resolve relative imports from. */
+  /** Root directory to resolve relative imports from. Must be an absolute path. Defaults to process.cwd(). */
   root?: string;
 }
 
 /**
  * Resolver for string identifiers that refer to files on the filesystem. This resolver uses the Node module resolution
- * algorithm to find the target files.
- *
- * TODO: should there be an alternate Resolver interface that is just a simple function?
+ * algorithm to find a target file.
  */
 export default class NodeResolver implements Resolver {
   /**
@@ -28,7 +29,6 @@ export default class NodeResolver implements Resolver {
   private root: string;
 
   constructor({ root }: NodeResolverOptions = {}) {
-    // TODO: do i need to make sure the passed in option is an absolute path, or just document that?
     this.root = root !== undefined ? root : process.cwd();
   }
 
@@ -36,8 +36,7 @@ export default class NodeResolver implements Resolver {
    * Rejects locations that look like URLs because they are not resolvable as files on the local filesystem.
    */
   public willResolve(importParams: ImportParams): boolean {
-    // if the location looks like a URL, bail from trying to resolve it
-    // TODO: should we attempt tp handle file:// protocol URLs?
+    // If it looks like there's a protocol, rejects the location.
     return !(/^(?:[a-z]+:)?\/\//i.test(importParams.location));
   }
 
@@ -47,50 +46,24 @@ export default class NodeResolver implements Resolver {
   public resolve(importParams: ImportParams, _result: Result): Promise<string> {
     const moduleResolveOptions: AsyncOpts = {
       basedir: importParams.from !== undefined ? dirname(importParams.from) : this.root,
+      extensions: [], // see: https://github.com/aoberoi/postcss-importer/issues/10
+      preserveSymlinks: false, // align with node's module resolution algorithm
 
-      // TODO: i think this allows "bare" imports like `foo` to resolve to filenames like `foo.css`. is that a good
-      // thing? i think yes because this is how someone might expect the node module resolution algorithm to work, but
-      // if we become more strict (with a loss of compatibility with postcss-import) then are we encouraging users to
-      // be more future-proof (and more aligned with browsers)?
-      extensions: ['.css'],
-
+      // Allow resolution with packages whose package.json contains a "style" key to refer to the main .css export.
       packageFilter: (pkg) => {
-        // allow "style" key in package.json to override "main" key
         if (pkg.style) {
           pkg.main = pkg.style;
-        // otherwise, when the "main" key is not defined or doesn't reference a .css file, use "index.css" as the
-        // default
         } else if (!pkg.main || !/\.css$/.test(pkg.main)) {
+          // Falls back to `index.css` when "style" and "main" are not defined or "main" doesn't end in .css
           pkg.main = 'index.css';
         }
         return pkg;
       },
-
-      // align better with node's module resolution algorithm
-      preserveSymlinks: false,
     };
 
-    // NOTE: this differs from postcss-import because it doesn't attempt to resolve the module name as a local file
-    // unless it starts with `./`. this _might_ cause issues for existing projects like bootstrap, so we can revisit
-    // this decision later.
-    // TODO: store a cache map of identifiers to their resolved path
-    return moduleResolvePromise(importParams.location, moduleResolveOptions)
+    // Option for relative imports. see: https://github.com/aoberoi/postcss-importer/issues/11
+    // Cache ImportParams to path mapping. see: https://github.com/aoberoi/postcss-importer/issues/12
+    return nodeResolve(importParams.location, moduleResolveOptions)
       .then((resolvedLocation: string) => readCache(resolvedLocation, 'utf8'));
   }
-}
-
-// ----- Helpers -----
-
-/**
- * Promisifies `moduleResolve()`. Can replace with `util.promisify(moduleResolve)` when minimum node is v8.
- */
-function moduleResolvePromise(id: string, opts: AsyncOpts = {}): Promise<string> {
-  return new Promise((resolve, reject) => {
-    moduleResolve(id, opts, (error, path) => {
-      if (error !== null && error !== undefined) {
-        return reject(error);
-      }
-      resolve(path);
-    });
-  });
 }

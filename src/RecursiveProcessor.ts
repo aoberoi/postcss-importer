@@ -42,14 +42,16 @@ export default class RecursiveProcessor {
     }
 
     // Log the dependency message. This is mostly use by watchers.
-    this.result.messages.push({
-      type: 'dependency',
-      plugin: 'postcss-importer',
-      // @ts-ignore
-      // tslint:disable-next-line
-      file,
-      parent: importParams.from,
-    });
+    if (file !== undefined) {
+      this.result.messages.push({
+        type: 'dependency',
+        plugin: 'postcss-importer',
+        // @ts-ignore
+        // tslint:disable-next-line
+        file,
+        parent: importParams.from,
+      });
+    }
 
     // NOTE: there may be a way to get the initial Processor was used to run this plugin (which contains instances of
     // all the other plugins) so that we can process all imported files with all the preceding plugins. the effect

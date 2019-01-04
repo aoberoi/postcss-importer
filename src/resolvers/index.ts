@@ -3,8 +3,13 @@ import { ImportParams } from '../rule-extractor';
 export { default as NodeResolver, NodeResolverOptions }  from './NodeResolver';
 export { default as ResolverChain }  from './ResolverChain';
 
+/**
+ * Response for a successful resolve and load of content.
+ */
 export interface ResolverResult {
+  /** The CSS content */
   content: string;
+  /** An optional file path. Should be an absolute path. When supplied, allows file watchers to monitor changes. */
   file?: string;
 }
 

@@ -13,12 +13,18 @@ export interface ResolverResult {
   file?: string;
 }
 
+export type ResolverOption = Resolver | ResolverFn;
+
+export interface ResolverFn {
+  (importParams: ImportParams, result: Result): Promise<ResolverResult>;
+}
+
 /**
  * Resolvers are responsible for turning `ImportParams` into CSS string content. See `NodeResolver` for an example.
  */
 export interface Resolver {
   /** Returns a Promise for CSS string content (and optionally a file) for the given `ImportParams` */
-  resolve: (importParams: ImportParams, result: Result) => Promise<ResolverResult>;
+  resolve: ResolverFn;
   /** Returns false when the resolver can synchronously determine that it cannot resolve the given `ImportParams` */
   willResolve?: (importParams: ImportParams, result: Result) => boolean;
 }

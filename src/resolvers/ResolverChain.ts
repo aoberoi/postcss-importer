@@ -1,5 +1,5 @@
 import { ImportParams } from '../rule-extractor';
-import { Resolver, ResolverResult } from './index';
+import { Resolver, ResolverOption, ResolverResult } from './index';
 import { Result } from 'postcss';
 
 /**
@@ -7,9 +7,9 @@ import { Result } from 'postcss';
  */
 export default class ResolverChain implements Resolver {
   /** List of resolvers to delegate to */
-  private resolvers: Resolver[];
+  private resolvers: ResolverOption[];
 
-  constructor(resolvers: Resolver[]) {
+  constructor(resolvers: ResolverOption[]) {
     this.resolvers = resolvers;
   }
 
@@ -25,7 +25,7 @@ export default class ResolverChain implements Resolver {
   public willResolve(importParams: ImportParams, result: Result): boolean {
     let canResolve = false;
     for (const resolver of this.resolvers) {
-      if (resolver.willResolve !== undefined) {
+      if (typeof resolver !== 'function' && resolver.willResolve !== undefined) {
         canResolve = resolver.willResolve(importParams, result);
       }
       if (canResolve) {
@@ -45,7 +45,12 @@ export default class ResolverChain implements Resolver {
   public async resolve(importParams: ImportParams, result: Result): Promise<ResolverResult> {
     for (const resolver of this.resolvers) {
       try {
-        return await resolver.resolve(importParams, result);
+        return await (
+          // Depending on whether we have a Resolver or a ResolverFn, it is invoked differently
+          typeof resolver === 'function' ?
+            resolver(importParams, result) :
+            resolver.resolve(importParams, result)
+        );
       } finally { } // tslint:disable-line:no-empty Ignore individual resolver errors
     }
     throw new Error('Resolution failed.');

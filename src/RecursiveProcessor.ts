@@ -1,5 +1,5 @@
 import { parse, Container, Result } from 'postcss';
-import { Resolver } from './resolvers';
+import { ResolverOption } from './resolvers';
 import { ImportParams } from './rule-extractor';
 
 /**
@@ -8,13 +8,13 @@ import { ImportParams } from './rule-extractor';
  */
 export default class RecursiveProcessor {
   /** Resolver used to obtain the CSS strings */
-  private resolver: Resolver;
+  private resolver: ResolverOption;
   /** Rule extractor that deals with finding imports in newly loaded content from the Resolver. */
   public ruleExtractor?: any;
   /** The initial processor's result */
   private result: Result;
 
-  constructor(resolver: Resolver, result: Result) {
+  constructor(resolver: ResolverOption, result: Result) {
     this.resolver = resolver;
     this.result = result;
   }
@@ -31,7 +31,12 @@ export default class RecursiveProcessor {
     let content;
     let file;
     try {
-      ({ content, file } = await this.resolver.resolve(importParams, this.result));
+      ({ content, file } = await (
+        // Depending on whether we have a Resolver or a ResolverFn, it is invoked differently
+        typeof this.resolver === 'function' ?
+          this.resolver(importParams, this.result) :
+          this.resolver.resolve(importParams, this.result))
+      );
     } catch (resolverError) {
       // if the import cannot be resolved, output a warning, and return original AtRule to stay in its place
       // TODO: should there be an option about whether this is a warning or an error?

@@ -125,3 +125,22 @@ describe('plugin with default options', () => {
     });
   });
 });
+
+describe('plugin with resolver option', () => {
+  it('should use a function as the resolver option', (done) => {
+    const expectedContent = '.resolved { foo: bar; }';
+    const inputCss = "@import 'foo';";
+    const dummyFilename = __filename;
+
+    // TODO: verify that the file property of the ResolverResult works
+    postcss([importer({
+      resolvers: [async () => { return { content: expectedContent }; }],
+    })])
+      .process(inputCss, { from: dummyFilename, to: dummyFilename })
+      .then((result) => {
+        assert.include(result.css, expectedContent);
+        done();
+      })
+      .catch(done);
+  });
+});

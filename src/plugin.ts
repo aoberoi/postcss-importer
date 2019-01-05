@@ -1,14 +1,14 @@
 import postcss, { Result, Root, Container } from 'postcss';
 import createRuleExtractor from './rule-extractor'; // tslint:disable-line:import-name
 import RecursiveProcessor from './RecursiveProcessor';
-import { Resolver, NodeResolver, NodeResolverOptions, ResolverChain } from './resolvers';
+import { Resolver, ResolverOption, NodeResolver, NodeResolverOptions, ResolverChain } from './resolvers';
 
 /**
  * Options for initializing this plugin.
  */
 export interface ImporterOptions {
   /** An ordered list of resolvers to use to find the imported style sheet. Defaults to a single NodeResolver. */
-  resolvers?: Resolver[];
+  resolvers?: ResolverOption[];
 }
 
 /**
@@ -23,7 +23,7 @@ export interface ImporterOptions {
  */
 export default postcss.plugin<ImporterOptions>('postcss-importer', ({ resolvers = [] }: ImporterOptions = {}) => {
   // Build the resolver, and potentially the resolver chain
-  const resolver: Resolver = (() => {
+  const resolver: ResolverOption = (() => {
     if (resolvers.length === 0) {
       return new NodeResolver();
     }
@@ -50,4 +50,4 @@ export default postcss.plugin<ImporterOptions>('postcss-importer', ({ resolvers 
 });
 
 // Re-exporting interfaces/values that are meant to be public
-export { Resolver, NodeResolver, NodeResolverOptions, ResolverChain };
+export { Resolver, ResolverOption, NodeResolver, NodeResolverOptions, ResolverChain };

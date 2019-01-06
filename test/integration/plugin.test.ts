@@ -1,6 +1,7 @@
 import 'mocha'; // tslint:disable-line:no-implicit-dependencies
 import { assert } from 'chai'; // tslint:disable-line:no-implicit-dependencies
-import postcss from 'postcss';
+import sinon from 'sinon'; // tslint:disable-line:no-implicit-dependencies
+import postcss, { Root } from 'postcss';
 import { readFile } from 'fs';
 import { resolve } from 'path';
 import importer from '../../build/plugin'; // tslint:disable-line:import-name
@@ -143,4 +144,47 @@ describe('plugin with resolver option', () => {
       })
       .catch(done);
   });
+});
+
+describe('plugin when its after another plugin in processing', () => {
+  it('should apply the first plugin on imported files', (done) => {
+    const filename = resolve(__dirname, './fixtures/imports_foo.css');
+    const expectedImport = resolve(__dirname, './fixtures/foo.css');
+    const fakePlugin = sinon.fake.resolves(true);
+
+    readFile(filename, (error, css) => {
+      if (error) return done(error);
+      postcss([
+        fakePlugin,
+        importer(),
+      ])
+        .process(css, { from: filename, to: filename })
+        .then((result) => {
+          assert.include(result.css, '.foo { color: blue; }');
+          assert.include(result.css, '.imports_foo { color: blue; }');
+
+          assert.equal(fakePlugin.callCount, 2);
+
+          const firstRoot: Root = fakePlugin.firstCall.args[0];
+          if (firstRoot.source === undefined) {
+            assert(false, 'first root has no source');
+          }
+          assert(firstRoot.source.input.file, filename);
+
+          const secondRoot: Root = fakePlugin.secondCall.args[0];
+          if (secondRoot.source === undefined) {
+            assert(false, 'second root has no source');
+          }
+          assert(secondRoot.source.input.file, expectedImport);
+
+          done();
+        })
+        .catch(done);
+    });
+  });
+});
+
+afterEach(() => {
+  // Restore the default sandbox here
+  sinon.restore();
 });

@@ -103,9 +103,7 @@ export default class RecursiveProcessor {
     // NOTE: assigning "from" process option with the filename where the import rule was written in
     // NOTE: not using `await` because the return value is of type LazyResult, which technically isn't a Promise
     return this.processor(content, importParams.from)
-      .then((root) => {
-        // feed the new result back through the rule extractor for recursion.
-        return this.ruleExtractor(root);
-      });
+      // feed the new result back through the rule extractor for recursion.
+      .then(this.ruleExtractor);
   }
 }

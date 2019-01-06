@@ -1,4 +1,4 @@
-import { parse, Container, Result } from 'postcss';
+import postcss, { Container, Result, ProcessOptions, Plugin } from 'postcss';
 import { ResolverOption } from './resolvers';
 import { ImportParams } from './rule-extractor';
 
@@ -13,10 +13,36 @@ export default class RecursiveProcessor {
   public ruleExtractor?: any;
   /** The initial processor's result */
   private result: Result;
+  /** Base process options for each processing pass */
+  private processOptions: ProcessOptions;
+  /** Plugins used for each processing pass */
+  private plugins: Plugin<any>[] = [];
 
   constructor(resolver: ResolverOption, result: Result) {
     this.resolver = resolver;
     this.result = result;
+
+    // Take the options from the top-level processor
+    // TODO: do we need the map option?
+    const topLevelProcessOptions: ProcessOptions = this.result.opts !== undefined ? this.result.opts : {};
+    this.processOptions = {
+      to: topLevelProcessOptions.to,
+      parser: topLevelProcessOptions.parser,
+      syntax: topLevelProcessOptions.syntax,
+    };
+
+    // Take plugins that are before this one from the top-level processor
+    if (this.result.processor !== undefined) {
+      // NOTE: this means that multiple instances of this plugin within the same processor are not supported
+      const ownIndex = this.result.processor.plugins.findIndex(p => p.postcssPlugin === 'postcss-importer');
+      this.plugins = this.result.processor.plugins.slice(0, ownIndex);
+    }
+
+    // Suppress no plugins warning
+    // https://github.com/postcss/postcss/issues/1218
+    if (this.plugins.length === 0) {
+      this.plugins.push(noopPlugin);
+    }
   }
 
   /**
@@ -46,7 +72,6 @@ export default class RecursiveProcessor {
       return importParams.atrule;
     }
 
-    // Log the dependency message. This is mostly use by watchers.
     if (file !== undefined) {
       this.result.messages.push({
         type: 'dependency',
@@ -58,17 +83,15 @@ export default class RecursiveProcessor {
       });
     }
 
-    // NOTE: there may be a way to get the initial Processor was used to run this plugin (which contains instances of
-    // all the other plugins) so that we can process all imported files with all the preceding plugins. the effect
-    // would be that we can relax the constraint on how early this plugin should be in the chain. in order to do this,
-    // this object needs access to the Result instance, to find the Result.processor, and then to search through the
-    // processors plugins for all that come before this one. identifying this one may not be straight forward. we could
-    // use the name, but then we get a new constraint that you cannot use this plugin more than once in the chain
-    // (reasonable). or we could try to check for object equality if we could get a reference to the plugin instance.
-    // oh yeah, this is how we would get any of the other processing options such as syntax, parser, stringifier, source
-    // map options, and the `to` destination.
+    // process the content through postcss to get an AST
+    // NOTE: assigning "from" process option with the filename where the import rule was written in
+    const result = await postcss(this.plugins).process(content, { ...this.processOptions, from: importParams.from });
 
-    // process the content through postcss to get an AST, feed this back through the rule extractor for recursion.
-    return this.ruleExtractor(parse(content, { from: importParams.from }));
+    // feed the new result back through the rule extractor for recursion.
+    return this.ruleExtractor(result.root);
   }
 }
+
+const noopPlugin = postcss.plugin('postcss-noop', () => {
+  return async () => {}; // tslint:disable-line:no-empty
+});

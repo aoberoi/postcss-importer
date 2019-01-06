@@ -1,4 +1,4 @@
-import postcss, { Container, Result, ProcessOptions, Plugin } from 'postcss';
+import postcss, { Container, Result, ProcessOptions, Plugin, Processor } from 'postcss';
 import { ResolverOption } from './resolvers';
 import { ImportParams } from './rule-extractor';
 
@@ -15,8 +15,8 @@ export default class RecursiveProcessor {
   private result: Result;
   /** Base process options for each processing pass */
   private processOptions: ProcessOptions;
-  /** Plugins used for each processing pass */
-  private plugins: Plugin<any>[] = [];
+  /** PostCSS Processor that is used to implement each processing pass */
+  private processor: Processor;
 
   constructor(resolver: ResolverOption, result: Result) {
     this.resolver = resolver;
@@ -32,17 +32,20 @@ export default class RecursiveProcessor {
     };
 
     // Take plugins that are before this one from the top-level processor
+    let plugins: Plugin<any>[] = [];
     if (this.result.processor !== undefined) {
       // NOTE: this means that multiple instances of this plugin within the same processor are not supported
       const ownIndex = this.result.processor.plugins.findIndex(p => p.postcssPlugin === 'postcss-importer');
-      this.plugins = this.result.processor.plugins.slice(0, ownIndex);
+      plugins = this.result.processor.plugins.slice(0, ownIndex);
     }
 
     // Suppress no plugins warning
     // https://github.com/postcss/postcss/issues/1218
-    if (this.plugins.length === 0) {
-      this.plugins.push(noopPlugin);
+    if (plugins.length === 0) {
+      plugins.push(noopPlugin);
     }
+
+    this.processor = postcss(plugins);
   }
 
   /**
@@ -85,7 +88,7 @@ export default class RecursiveProcessor {
 
     // process the content through postcss to get an AST
     // NOTE: assigning "from" process option with the filename where the import rule was written in
-    const result = await postcss(this.plugins).process(content, { ...this.processOptions, from: importParams.from });
+    const result = await this.processor.process(content, { ...this.processOptions, from: importParams.from });
 
     // feed the new result back through the rule extractor for recursion.
     return this.ruleExtractor(result.root);

@@ -1,4 +1,4 @@
-import postcss, { Container, Result, ProcessOptions, Plugin, Processor } from 'postcss';
+import postcss, { Container, Result, ProcessOptions, Plugin } from 'postcss';
 import { ResolverOption } from './resolvers';
 import { ImportParams } from './rule-extractor';
 
@@ -13,39 +13,52 @@ export default class RecursiveProcessor {
   public ruleExtractor?: any;
   /** The initial processor's result */
   private result: Result;
-  /** Base process options for each processing pass */
-  private processOptions: ProcessOptions;
-  /** PostCSS Processor that is used to implement each processing pass */
-  private processor: Processor;
+  /** Function that triggers the processing of CSS, with inherited options from the top-level processor. */
+  private processor: (css: string, from?: string) => Promise<Container>;
 
   constructor(resolver: ResolverOption, result: Result) {
     this.resolver = resolver;
     this.result = result;
 
-    // Take the options from the top-level processor
-    // TODO: do we need the map option?
-    const topLevelProcessOptions: ProcessOptions = this.result.opts !== undefined ? this.result.opts : {};
-    this.processOptions = {
-      to: topLevelProcessOptions.to,
-      parser: topLevelProcessOptions.parser,
-      syntax: topLevelProcessOptions.syntax,
-    };
-
     // Take plugins that are before this one from the top-level processor
     let plugins: Plugin<any>[] = [];
-    if (this.result.processor !== undefined) {
+    if (result.processor !== undefined) {
       // NOTE: this means that multiple instances of this plugin within the same processor are not supported
-      const ownIndex = this.result.processor.plugins.findIndex(p => p.postcssPlugin === 'postcss-importer');
-      plugins = this.result.processor.plugins.slice(0, ownIndex);
+      const ownIndex = result.processor.plugins.findIndex(p => p.postcssPlugin === 'postcss-importer');
+      plugins = result.processor.plugins.slice(0, ownIndex);
     }
 
-    // Suppress no plugins warning
-    // https://github.com/postcss/postcss/issues/1218
-    if (plugins.length === 0) {
-      plugins.push(noopPlugin);
-    }
+    const processOptions: Readonly<ProcessOptions> = result.opts !== undefined ? result.opts : {};
 
-    this.processor = postcss(plugins);
+    if (plugins.length > 0) {
+      this.processor = (css, from) => {
+        return postcss(plugins).process(css, { ...processOptions, from }).then(result => result.root);
+      };
+    } else {
+      if (processOptions.parser !== undefined) {
+        this.processor = async (css, from) => {
+          // TODO: TypeScript should be smart enough not to need this conditional. File an issue.
+          if (processOptions.parser !== undefined) {
+            // TODO: Fix type definitions to remove error "'Syntax | Parse' has no compatible call signatures"
+            // @ts-ignore
+            return processOptions.parser(css, { from });
+          }
+          throw new Error('Parser process option not found.');
+        };
+      } else if (processOptions.syntax !== undefined && processOptions.syntax.parse !== undefined) {
+        this.processor = async (css, from) => {
+          // TODO: TypeScript should be smart enough not to need this conditional. File an issue.
+          if (processOptions.syntax !== undefined && processOptions.syntax.parse !== undefined) {
+            // TODO: Fix type definitions to remove error "'{ from: string; }' is not assignable to parameter of type
+            // 'SourceMapOptions'"
+            // @ts-ignore
+            return processOptions.syntax.parse(css, { from });
+          }
+          throw new Error('Syntax process option not found');
+        };
+      }
+      this.processor = (css, from) => Promise.resolve(postcss.parse(css, { from }));
+    }
   }
 
   /**
@@ -89,14 +102,8 @@ export default class RecursiveProcessor {
     // process the content through postcss to get an AST
     // NOTE: assigning "from" process option with the filename where the import rule was written in
     // NOTE: not using `await` because the return value is of type LazyResult, which technically isn't a Promise
-    return this.processor.process(content, { ...this.processOptions, from: importParams.from })
-      .then((result: Result) => {
-        // feed the new result back through the rule extractor for recursion.
-        return this.ruleExtractor(result.root);
-      });
+    return this.processor(content, importParams.from)
+      // feed the new result back through the rule extractor for recursion.
+      .then(this.ruleExtractor);
   }
 }
-
-const noopPlugin = postcss.plugin('postcss-noop', () => {
-  return async () => {}; // tslint:disable-line:no-empty
-});

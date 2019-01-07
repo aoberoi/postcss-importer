@@ -1,8 +1,9 @@
 import 'mocha'; // tslint:disable-line:no-implicit-dependencies
 import { assert } from 'chai'; // tslint:disable-line:no-implicit-dependencies
 import sinon from 'sinon'; // tslint:disable-line:no-implicit-dependencies
+import { SourceMapConsumer } from 'source-map'; // tslint:disable-line:no-implicit-dependencies
+import { getLocator } from 'locate-character'; // tslint:disable-line:no-implicit-dependencies
 import postcss, { Root } from 'postcss';
-// import { SourceMapConsumer } from 'source-map'; // tslint:disable-line:no-implicit-dependencies
 import { readFile } from 'fs';
 import { resolve } from 'path';
 import importer from '../../build/plugin'; // tslint:disable-line:import-name
@@ -11,15 +12,23 @@ describe('plugin with default options', () => {
   it('processes a simple import', (done) => {
     const filename = resolve(__dirname, './fixtures/imports_foo.css');
     const expectedImport = resolve(__dirname, './fixtures/foo.css');
+    const sourceRule = '.imports_foo { color: blue; }';
+    const expectedSourceRuleLocation = { line: 3, column: 0, source: 'imports_foo.css' };
+    const importedRule = '.foo { color: blue; }';
+    const expectedImportedRuleLocation = { line: 1, column: 0, source: 'foo.css' };
 
     readFile(filename, (error, css) => {
       if (error) return done(error);
       postcss([importer()])
         .process(css, { from: filename, to: filename, map: { inline: false } })
         .then((result) => {
-          // TODO: contents of imports_foo.css, foo.css copied manually, maybe read this from the files?
-          assert.include(result.css, '.foo { color: blue; }');
-          assert.include(result.css, '.imports_foo { color: blue; }');
+          const locate = getLocator(result.css, { offsetLine: 1 });
+
+          const sourceRuleLocation = locate(sourceRule);
+          assert.isDefined(sourceRuleLocation);
+          const importedRuleLocation = locate(importedRule);
+          assert.isDefined(importedRuleLocation);
+          assert.isBelow(importedRuleLocation.line, sourceRuleLocation.line);
 
           assert.isAtLeast(result.messages.length, 1);
           const dependencyMessage = result.messages.find(m => m.type === 'dependency');
@@ -30,6 +39,9 @@ describe('plugin with default options', () => {
 
           const sourceMap = result.map.toJSON();
           assert.lengthOf(sourceMap.sources, 2);
+          const smc = new SourceMapConsumer(sourceMap);
+          assert.deepInclude(smc.originalPositionFor(sourceRuleLocation), expectedSourceRuleLocation);
+          assert.deepInclude(smc.originalPositionFor(importedRuleLocation), expectedImportedRuleLocation);
 
           done();
         })
@@ -45,7 +57,7 @@ describe('plugin with default options', () => {
     readFile(filename, (error, css) => {
       if (error) return done(error);
       postcss([importer()])
-        .process(css, { from: filename, to: filename })
+        .process(css, { from: filename, to: filename, map: { inline: false } })
         .then((result) => {
           // TODO: assert on the ordering
           assert.include(result.css, '.foo { color: blue; }');
@@ -65,6 +77,9 @@ describe('plugin with default options', () => {
           assert.equal(1, indirectDependencies.length);
           assert.propertyVal(indirectDependencies[0], 'plugin', 'postcss-importer');
           assert.propertyVal(indirectDependencies[0], 'parent', expectedDirectImport);
+
+          const sourceMap = result.map.toJSON();
+          assert.lengthOf(sourceMap.sources, 3);
 
           done();
         })

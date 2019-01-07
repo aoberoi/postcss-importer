@@ -37,7 +37,7 @@ export default class RecursiveProcessor {
     } else {
       if (processOptions.parser !== undefined) {
         this.processor = async (css, from) => {
-          // TODO: TypeScript should be smart enough not to need this conditional. File an issue.
+          // TypeScript related bug: https://github.com/Microsoft/TypeScript/issues/29281
           if (processOptions.parser !== undefined) {
             // TODO: Fix type definitions to remove error "'Syntax | Parse' has no compatible call signatures"
             // @ts-ignore
@@ -47,7 +47,7 @@ export default class RecursiveProcessor {
         };
       } else if (processOptions.syntax !== undefined && processOptions.syntax.parse !== undefined) {
         this.processor = async (css, from) => {
-          // TODO: TypeScript should be smart enough not to need this conditional. File an issue.
+          // TypeScript related bug: https://github.com/Microsoft/TypeScript/issues/29281
           if (processOptions.syntax !== undefined && processOptions.syntax.parse !== undefined) {
             // TODO: Fix type definitions to remove error "'{ from: string; }' is not assignable to parameter of type
             // 'SourceMapOptions'"

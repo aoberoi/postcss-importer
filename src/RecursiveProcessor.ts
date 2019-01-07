@@ -39,7 +39,7 @@ export default class RecursiveProcessor {
         this.processor = async (css, from) => {
           // TypeScript related bug: https://github.com/Microsoft/TypeScript/issues/29281
           if (processOptions.parser !== undefined) {
-            // TODO: Fix type definitions to remove error "'Syntax | Parse' has no compatible call signatures"
+            // TODO: remove pragma when this PR lands in a release: https://github.com/postcss/postcss/pull/1219
             // @ts-ignore
             return processOptions.parser(css, { from });
           }
@@ -49,8 +49,7 @@ export default class RecursiveProcessor {
         this.processor = async (css, from) => {
           // TypeScript related bug: https://github.com/Microsoft/TypeScript/issues/29281
           if (processOptions.syntax !== undefined && processOptions.syntax.parse !== undefined) {
-            // TODO: Fix type definitions to remove error "'{ from: string; }' is not assignable to parameter of type
-            // 'SourceMapOptions'"
+            // TODO: remove pragma when this PR lands in a release: https://github.com/postcss/postcss/pull/1219
             // @ts-ignore
             return processOptions.syntax.parse(css, { from });
           }

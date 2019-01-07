@@ -2,6 +2,7 @@ import 'mocha'; // tslint:disable-line:no-implicit-dependencies
 import { assert } from 'chai'; // tslint:disable-line:no-implicit-dependencies
 import sinon from 'sinon'; // tslint:disable-line:no-implicit-dependencies
 import postcss, { Root } from 'postcss';
+// import { SourceMapConsumer } from 'source-map'; // tslint:disable-line:no-implicit-dependencies
 import { readFile } from 'fs';
 import { resolve } from 'path';
 import importer from '../../build/plugin'; // tslint:disable-line:import-name
@@ -14,9 +15,8 @@ describe('plugin with default options', () => {
     readFile(filename, (error, css) => {
       if (error) return done(error);
       postcss([importer()])
-        .process(css, { from: filename, to: filename })
+        .process(css, { from: filename, to: filename, map: { inline: false } })
         .then((result) => {
-          // TODO: check sourcemaps?
           // TODO: contents of imports_foo.css, foo.css copied manually, maybe read this from the files?
           assert.include(result.css, '.foo { color: blue; }');
           assert.include(result.css, '.imports_foo { color: blue; }');
@@ -27,6 +27,9 @@ describe('plugin with default options', () => {
           assert.propertyVal(dependencyMessage, 'plugin', 'postcss-importer');
           assert.propertyVal(dependencyMessage, 'file', expectedImport);
           assert.propertyVal(dependencyMessage, 'parent', filename);
+
+          const sourceMap = result.map.toJSON();
+          assert.lengthOf(sourceMap.sources, 2);
 
           done();
         })
@@ -61,7 +64,7 @@ describe('plugin with default options', () => {
           const indirectDependencies = dependencyMessages.filter(m => m.file === expectedIndirectImport);
           assert.equal(1, indirectDependencies.length);
           assert.propertyVal(indirectDependencies[0], 'plugin', 'postcss-importer');
-          assert.propertyVal(indirectDependencies[0], 'parent', filename);
+          assert.propertyVal(indirectDependencies[0], 'parent', expectedDirectImport);
 
           done();
         })

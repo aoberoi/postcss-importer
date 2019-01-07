@@ -102,7 +102,7 @@ export default class RecursiveProcessor {
     // process the content through postcss to get an AST
     // NOTE: assigning "from" process option with the filename where the import rule was written in
     // NOTE: not using `await` because the return value is of type LazyResult, which technically isn't a Promise
-    return this.processor(content, importParams.from)
+    return this.processor(content, file)
       // feed the new result back through the rule extractor for recursion.
       .then(this.ruleExtractor);
   }
